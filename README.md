@@ -1,18 +1,18 @@
-# Radiotherapy Data Hub 🏥
+# Radiotherapy Data Hub
 
 Application web pour la gestion et l'analyse de données de dosimétrie en radiothérapie.
 
-## 🌟 Fonctionnalités
+## Fonctionnalités
 
-- 📚 Gestion d'articles scientifiques
-- 🧪 Suivi d'expériences de dosimétrie
-- 🏗️ Gestion des machines de traitement
-- 📊 Gestion des détecteurs
-- 👻 Gestion des fantômes (phantoms)
-- 📁 Upload et stockage de données
-- 🔍 Cartographie des colonnes de données
+- Gestion d'articles scientifiques
+- Suivi d'expériences de dosimétrie
+- Gestion des machines de traitement
+- Gestion des détecteurs
+- Gestion des fantômes (phantoms)
+- Upload et stockage de données
+- Cartographie des colonnes de données
 
-## 🏗️ Architecture
+## Architecture
 
 **Backend :**
 - FastAPI (Python 3.11)
@@ -26,7 +26,7 @@ Application web pour la gestion et l'analyse de données de dosimétrie en radio
 - Tailwind CSS + shadcn/ui
 - React Router pour la navigation
 
-## 🚀 Démarrage rapide
+## Démarrage rapide
 
 ### Avec Docker (Recommandé)
 
@@ -59,9 +59,9 @@ npm install
 npm run dev
 ```
 
-## 📦 Configuration
+## Configuration
 
-Copier `.env.example` vers `.env` et modifier les variables :
+Créer un fichier `.env` à partir de `.env.example` et adapter les variables :
 
 ```env
 # Base de données
@@ -77,7 +77,7 @@ CORS_ORIGINS=http://localhost:3000,https://dosimetrie.centralesupelec.fr
 PORT=80
 ```
 
-## 🌐 Déploiement
+## Déploiement
 
 Voir [DEPLOYMENT.md](DEPLOYMENT.md) pour les instructions détaillées de déploiement sur CentraleSupélec.
 
@@ -102,7 +102,7 @@ docker-compose logs -f
 docker-compose down
 ```
 
-## 📁 Structure du projet
+## Structure du projet
 
 ```
 radiotherapy-data-hub/
@@ -128,7 +128,7 @@ radiotherapy-data-hub/
 └── start.sh             # Script de démarrage
 ```
 
-## 🔧 Commandes utiles
+## Commandes utiles
 
 ```bash
 # Logs en temps réel
@@ -147,7 +147,7 @@ docker-compose exec db pg_dump -U radiotherapy radiotherapy_db > backup.sql
 docker-compose exec -T db psql -U radiotherapy radiotherapy_db < backup.sql
 ```
 
-## 🧪 API Endpoints
+## API Endpoints
 
 ### Articles
 - `GET /articles/` - Liste des articles
@@ -175,15 +175,15 @@ docker-compose exec -T db psql -U radiotherapy radiotherapy_db < backup.sql
 - `POST /complete/submit` - Soumission d'une expérience complète
 - `POST /complete/submit-experience/{article_id}` - Ajouter une expérience à un article
 
-## 🛡️ Sécurité
+## Sécurité
 
-- ✅ Variables d'environnement pour les secrets
-- ✅ CORS configuré pour les origines autorisées
-- ✅ Health checks pour les services
-- ✅ Validation des données avec Pydantic
-- ⚠️ Changez **toujours** le mot de passe PostgreSQL en production
+- Variables d'environnement pour les secrets
+- CORS configuré pour les origines autorisées
+- Health checks pour les services
+- Validation des données avec Pydantic
+- Note : Toujours changer le mot de passe PostgreSQL en production
 
-## 📊 Monitoring
+## Monitoring
 
 ```bash
 # Utilisation des ressources
@@ -196,22 +196,10 @@ docker system df
 docker-compose ps
 ```
 
-## 🤝 Contribution
+## Contribution
 
 1. Fork le projet
 2. Créer une branche (`git checkout -b feature/AmazingFeature`)
 3. Commit les changements (`git commit -m 'Add AmazingFeature'`)
 4. Push vers la branche (`git push origin feature/AmazingFeature`)
 5. Ouvrir une Pull Request
-
-## 📝 License
-
-Ce projet est développé pour CentraleSupélec.
-
-## 📧 Contact
-
-Pour toute question ou support, contactez l'équipe de développement.
-
----
-
-**Développé avec ❤️ pour la communauté de radiothérapie**

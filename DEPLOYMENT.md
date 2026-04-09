@@ -1,11 +1,11 @@
-# Guide de Déploiement - Radiotherapy Data Hub
+# Déploiement - Radiotherapy Data Hub
 
 ## Étape 1 : Déploiement sur docker-heb02
 
 ### 1.1 Connexion SSH au serveur
 
 ```bash
-ssh ton-login@docker-heb02.centralesupelec.fr
+ssh [votre-login]@docker-heb02.centralesupelec.fr
 ```
 
 ### 1.2 Cloner le repository
@@ -25,23 +25,23 @@ nano .env
 
 **Modifier ces lignes dans .env :**
 
-**IMPORTANT : Change le mot de passe à DEUX endroits !**
+**Important : changer le mot de passe à deux endroits**
 
 ```env
 # 1. Définition du mot de passe
-POSTGRES_PASSWORD=TonMotDePasseSecurise2026!
+POSTGRES_PASSWORD=MotDePasseSecurise2026!
 
-# 2. Dans l'URL de connexion (utilise le MÊME mot de passe)
-DATABASE_URL=postgresql://radiotherapy:TonMotDePasseSecurise2026!@db:5432/radiotherapy_db
+# 2. Dans l'URL de connexion (utiliser le MÊME mot de passe)
+DATABASE_URL=postgresql://radiotherapy:MotDePasseSecurise2026!@db:5432/radiotherapy_db
 
-# 3. Le domaine est déjà bon (ne pas modifier)
+# 3. Domaine configuré (ne pas modifier)
 CORS_ORIGINS=http://localhost:3000,https://dosimetrie.centralesupelec.fr
 ```
 
-**Conseil pour le mot de passe :**
-- Au moins 12 caractères
-- Mélange de majuscules, minuscules, chiffres et symboles
-- Exemple : `Dosimetrie2026!MonAppli#`
+**Recommandations pour le mot de passe :**
+- Minimum 12 caractères
+- Majuscules, minuscules, chiffres et caractères spéciaux
+- Exemple : `Dosimetrie2026!AppliSec#`
 
 **Sauvegarder et quitter nano :**
 - `Ctrl + O` (sauvegarder)
@@ -54,17 +54,17 @@ CORS_ORIGINS=http://localhost:3000,https://dosimetrie.centralesupelec.fr
 # Rendre le script exécutable
 chmod +x start.sh
 
-# Lancer l'application (tout est automatique !)
+# Lancer l'application
 ./start.sh
 ```
 
-**Ce qui se passe automatiquement :**
+**Processus de démarrage :**
 1. PostgreSQL démarre et crée la base de données
-2. Backend démarre et crée toutes les tables automatiquement
-3. Frontend build et démarre avec Nginx
+2. Backend démarre et crée toutes les tables
+3. Frontend est construit et démarre avec Nginx
 4. Tous les services se connectent entre eux
 
-**Temps estimé :** 2-3 minutes
+**Durée estimée :** 2-3 minutes
 
 ---
 
@@ -96,10 +96,10 @@ docker-compose logs backend
 
 **Logs attendus du backend :**
 ```
-🔗 Connecting to database...
-✅ Database connection established!
-🔧 Creating database tables...
-✅ Database tables created successfully!
+Connecting to database...
+Database connection established
+Creating database tables...
+Database tables created successfully
 ```
 
 ### 2.3 Tester l'API
@@ -212,7 +212,7 @@ docker-compose restart db backend
 # Éditer .env
 nano .env
 
-# Vérifier que cette ligne contient ton domaine
+# Vérifier que cette ligne contient le domaine
 CORS_ORIGINS=http://localhost:3000,https://dosimetrie.centralesupelec.fr
 
 # Redémarrer le backend
@@ -244,18 +244,18 @@ docker-compose up -d frontend
 
 ### Problème : "Cannot connect to Docker daemon"
 
-**Cause :** Docker n'est pas démarré ou tu n'as pas les permissions
+**Cause :** Docker n'est pas démarré ou les permissions sont insuffisantes
 
 **Solution :**
 ```bash
 # Démarrer Docker (si installé)
 sudo systemctl start docker
 
-# Vérifier ton groupe d'utilisateur
+# Vérifier le groupe d'utilisateur
 groups
-# Tu dois être dans le groupe "docker"
+# Être dans le groupe "docker"
 
-# Sinon, contacter l'IT pour ajouter ton user au groupe docker
+# Sinon, contacter l'IT pour ajouter l'utilisateur au groupe docker
 ```
 
 ---
@@ -298,39 +298,11 @@ Les données sont sauvegardées dans des volumes Docker :
 - **Fichiers uploadés** : `./backend/data/uploads/`
 - **Logs** : `./backend/logs/`
 
-**Important :** Fais des backups réguliers de la base de données !
-
----
-
-## Résumé en 5 commandes
-
-```bash
-# 1. Connexion
-ssh ton-login@docker-heb02.centralesupelec.fr
-
-# 2. Clonage
-git clone https://github.com/paradiselovin/radiotherapy-data-hub.git && cd radiotherapy-data-hub
-
-# 3. Configuration
-cp .env.example .env && nano .env  # Change le mot de passe !
-
-# 4. Déploiement
-./start.sh
-
-# 5. Vérification
-docker-compose ps && curl http://localhost:80/api/health
-```
-
-**C'est tout ! L'application est en ligne sur https://dosimetrie.centralesupelec.fr**
+**Important :** Faire des backups réguliers de la base de données !
 
 ---
 
 ## Support
 
 - **Repository GitHub** : https://github.com/paradiselovin/radiotherapy-data-hub
-- **Issues** : https://github.com/paradiselovin/radiotherapy-data-hub/issues
 - **IT CentraleSupélec** : Pour les problèmes serveur/réseau
-
----
-
-**Développé avec ❤️ pour la communauté de radiothérapie**

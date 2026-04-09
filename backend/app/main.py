@@ -13,7 +13,7 @@ from app.models import (
     machine,
     phantom,
     column_mapping,
-    )
+)
 from app.routes import (
     articles,
     experiences,
@@ -32,7 +32,8 @@ from app.routes import (
 app = FastAPI(title="Dosimetry Database API")
 
 # CORS configuration from environment variable
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8080")
+CORS_ORIGINS = os.getenv(
+    "CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8080")
 ALLOWED_ORIGINS = [origin.strip() for origin in CORS_ORIGINS.split(",")]
 
 app.add_middleware(
@@ -44,9 +45,9 @@ app.add_middleware(
 )
 
 # Creating database tables at startup
-print("🔧 Creating database tables...")
+print("Creating database tables...")
 Base.metadata.create_all(bind=engine)
-print("✅ Database tables created successfully!")
+print("Database tables created successfully")
 
 # Creating routers
 app.include_router(articles.router)
@@ -54,21 +55,17 @@ app.include_router(experiences.router)
 app.include_router(files.router)
 app.include_router(donnees.router)
 
+
 @app.get("/")
 def root():
     return {"status": "API running", "message": "Radiotherapy Data Hub API"}
+
 
 @app.get("/health")
 def health_check():
     """Health check endpoint for monitoring"""
     return {"status": "healthy", "service": "radiotherapy-api"}
 
-
-from app.routes import (
-    machines,
-    phantoms,
-    detectors,
-)
 
 app.include_router(machines.router)
 app.include_router(phantoms.router)
@@ -79,6 +76,6 @@ app.include_router(experience_detectors.router)
 app.include_router(complete_submission.router)
 
 # Mount frontend static after API routers so API endpoints are not shadowed
-# NOTE: In development, the frontend runs on a separate dev server (npm run dev)
-# Uncomment the line below only when you have built the frontend (npm run build)
+# In development, the frontend runs on a separate dev server (npm run dev)
+# Uncomment the line below only when the frontend has been built (npm run build)
 # app.mount("/", StaticFiles(directory="../frontend/dist", html=True), name="static")

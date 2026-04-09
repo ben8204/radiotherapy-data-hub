@@ -16,12 +16,14 @@ router = APIRouter(prefix="/donnees", tags=["Donnees"])
 UPLOAD_DIR = "data/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
 
 @router.post("/upload/{experience_id}", status_code=status.HTTP_201_CREATED)
 def upload_donnee(
@@ -34,10 +36,11 @@ def upload_donnee(
     db: Session = Depends(get_db),
 ):
     # Vérifier que l'expérience existe
-    experience = db.query(Experience).filter(Experience.experience_id == experience_id).first()
+    experience = db.query(Experience).filter(
+        Experience.experience_id == experience_id).first()
     if not experience:
         raise HTTPException(status_code=404, detail="Experience not found")
-    
+
     donnee_data = DonneeCreate(
         data_type=data_type,
         unit=unit,
@@ -65,14 +68,14 @@ def upload_donnee(
         db.flush()  # Flush to get the donnee.data_id before creating column mappings
     except DatabaseError as e:
         db.rollback()
-        print(f"❌ Database Error during donnee creation: {str(e)}")
+        print(f"Database Error during donnee creation: {str(e)}")
         raise HTTPException(
             status_code=409,
             detail=f"Database Error: {str(e)}"
         )
     except Exception as e:
         db.rollback()
-        print(f"❌ Error during donnee creation: {str(e)}")
+        print(f"Error during donnee creation: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error: {str(e)}"
@@ -81,19 +84,18 @@ def upload_donnee(
     # Create column mappings if provided
     if columnMapping:
         try:
-            print(f"📝 Processing columnMapping: {columnMapping}")
             mappings = json.loads(columnMapping)
-            print(f"📝 Parsed mappings: {mappings}")
             if isinstance(mappings, list):
                 for mapping in mappings:
                     # Support both camelCase (from frontend) and snake_case
-                    column_name = mapping.get("column_name") or mapping.get("name")
-                    data_type = mapping.get("data_type") or mapping.get("dataType")
-                    column_description = mapping.get("column_description") or mapping.get("description")
+                    column_name = mapping.get(
+                        "column_name") or mapping.get("name")
+                    data_type = mapping.get(
+                        "data_type") or mapping.get("dataType")
+                    column_description = mapping.get(
+                        "column_description") or mapping.get("description")
                     unit = mapping.get("unit")
-                    
-                    print(f"📝 Creating mapping - name: {column_name}, type: {data_type}, unit: {unit}")
-                    
+
                     # Only create if we have at least column_name and data_type
                     if column_name and data_type:
                         column_map = ColumnMapping(
@@ -104,11 +106,9 @@ def upload_donnee(
                             unit=unit,
                         )
                         db.add(column_map)
-                    else:
-                        print(f"⚠️ Skipping incomplete mapping - name: {column_name}, type: {data_type}")
         except (json.JSONDecodeError, KeyError) as e:
             db.rollback()
-            print(f"❌ Invalid columnMapping format: {str(e)}")
+            print(f"Invalid columnMapping format: {str(e)}")
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid columnMapping format: {str(e)}"
@@ -116,17 +116,17 @@ def upload_donnee(
 
     try:
         db.commit()
-        print(f"✅ Donnee and column mappings committed successfully")
+        print("Donnee and column mappings committed successfully")
     except DatabaseError as e:
         db.rollback()
-        print(f"❌ Database Error during commit: {str(e)}")
+        print(f"Database Error during commit: {str(e)}")
         raise HTTPException(
             status_code=409,
             detail=f"Database Error: {str(e)}"
         )
     except Exception as e:
         db.rollback()
-        print(f"❌ Error during commit: {str(e)}")
+        print(f"Error during commit: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error: {str(e)}"
@@ -134,6 +134,7 @@ def upload_donnee(
 
     db.refresh(donnee)
     return donnee
+
 
 @router.get("/")
 def list_donnees(db: Session = Depends(get_db)):

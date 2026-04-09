@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
 
+
 class Phantom(Base):
     __tablename__ = "phantoms"
 
@@ -11,6 +12,6 @@ class Phantom(Base):
     model = Column(String)
     dimensions = Column(String)
     material = Column(String)
-    
+
     # Relation vers ExperiencePhantom
     experiences = relationship("ExperiencePhantom", back_populates="phantom")
