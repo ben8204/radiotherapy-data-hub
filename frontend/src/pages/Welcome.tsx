@@ -138,8 +138,13 @@ export default function WelcomePage() {
                     {/* Header */}
                     <div className="text-center mb-12">
                         <div className="flex justify-center mb-6">
-                            <div className="bg-primary/10 p-4 rounded-full">
-                                <Microscope className="h-12 w-12 text-primary" />
+                            {/* On remplace rounded-full (cercle) par rounded-2xl (carré arrondi) et on ajoute une ombre */}
+                            <div className="bg-white p-2 rounded-2xl shadow-md h-28 w-28">
+                                <img 
+                                    src="/linac2.PNG" 
+                                    alt="Accélérateur linéaire" 
+                                    className="h-full w-full object-contain rounded-xl" 
+                                />
                             </div>
                         </div>
                         <h1 className="text-4xl font-bold text-foreground mb-4">
