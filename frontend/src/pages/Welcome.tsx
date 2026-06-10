@@ -392,28 +392,28 @@ export default function WelcomePage() {
                         }}
                         className="mb-6"
                     >
-                        ← Retour à l'accueil
+                        ← Back
                     </Button>
 
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-foreground mb-2">
-                            Explorateur de Données Scientifiques
+                            Scientific Data Explorer
                         </h1>
                         <p className="text-muted-foreground">
-                            Sélectionnez une expérience pour télécharger ses fichiers de dosimétrie associés.
+                            Select an experiment to download its associated dosimetry files.
                         </p>
                     </div>
 
                     <div className="grid md:grid-cols-3 gap-6">
                         {/* Colonne Gauche : Liste des expériences */}
                         <div className="md:col-span-1 space-y-3">
-                            <h2 className="font-semibold text-lg mb-2">Expériences disponibles</h2>
+                            <h2 className="font-semibold text-lg mb-2">Available experiences</h2>
                             {isLoadingData ? (
                                 <div className="flex items-center justify-center p-8">
                                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                                 </div>
                             ) : experiencesList.length === 0 ? (
-                                <p className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed">Aucune expérience en base de données.</p>
+                                <p className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed">No Experience in Database</p>
                             ) : (
                                 experiencesList.map((exp) => (
                                     <button
@@ -444,25 +444,25 @@ export default function WelcomePage() {
                                     {!selectedId ? (
                                         <div className="h-full flex flex-col items-center justify-center text-center p-12 text-muted-foreground">
                                             <Download className="h-12 w-12 mb-4 opacity-20" />
-                                            <p>Veuillez sélectionner une expérience dans la liste de gauche pour afficher ses fichiers.</p>
+                                            <p>Please select an experiment from the list on the left to view its files.</p>
                                         </div>
                                     ) : !selectedExperience ? (
                                         <div className="flex flex-col items-center justify-center p-12">
                                             <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                                            <p className="text-sm text-muted-foreground">Chargement des détails de l'expérience...</p>
+                                            <p className="text-sm text-muted-foreground">Loading Experience Details...</p>
                                         </div>
                                     ) : (
                                         <div className="space-y-6">
                                             <div>
-                                                <h2 className="text-xl font-bold text-foreground mb-1">Détails de l'expérience</h2>
+                                                <h2 className="text-xl font-bold text-foreground mb-1">Details of the Experience</h2>
                                                 <p className="text-sm text-muted-foreground">{selectedExperience.description}</p>
                                             </div>
 
                                             {/* Liste des fichiers téléchargeables */}
                                             <div className="space-y-3">
-                                                <h3 className="font-semibold text-sm text-foreground uppercase tracking-wider">Fichiers de données ({selectedExperience.data?.length || 0})</h3>
+                                                <h3 className="font-semibold text-sm text-foreground uppercase tracking-wider">Data Files ({selectedExperience.data?.length || 0})</h3>
                                                 {!selectedExperience.data || selectedExperience.data.length === 0 ? (
-                                                    <p className="text-sm text-muted-foreground border rounded-lg p-4 bg-muted/20">Aucun fichier lié à cette expérience.</p>
+                                                    <p className="text-sm text-muted-foreground border rounded-lg p-4 bg-muted/20">No data link to this experience</p>
                                                 ) : (
                                                     selectedExperience.data.map((file: any, index: number) => (
                                                         <div key={index} className="flex items-center justify-between p-4 border rounded-xl bg-card shadow-sm hover:shadow-md transition-shadow">
@@ -480,7 +480,7 @@ export default function WelcomePage() {
                                                                     rel="noopener noreferrer"
                                                                 >
                                                                     <Download className="h-4 w-4" />
-                                                                    Télécharger
+                                                                    Download
                                                                 </a>
                                                             </Button>
                                                         </div>
