@@ -2,7 +2,7 @@
 // Configure this URL to match your backend deployment
 // In production, uses /api which is proxied by nginx to the backend
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "/api" : "http://localhost:8000");
+const API_BASE_URL = "/api";
 
 // Types matching your FastAPI models
 export interface ArticleCreate {
@@ -190,6 +190,10 @@ export const api = {
   async getExperiences(): Promise<ExperienceResponse[]> {
     const response = await fetch(`${API_BASE_URL}/experiences/`);
     return handleResponse<ExperienceResponse[]>(response);
+  },
+
+  getDownloadUrl(experienceId: number, dataIndex: number): string {
+    return `${API_BASE_URL}/experiences/${experienceId}/download/${dataIndex}`;
   },
 
   // Machines

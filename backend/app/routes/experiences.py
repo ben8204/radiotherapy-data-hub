@@ -1,3 +1,5 @@
+import os
+from fastapi.responses import FileResponse
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -126,7 +128,7 @@ def get_experiment_summary(experience_id: int, db: Session = Depends(get_db)):
         {
             "file_path": f.file_path,
             "data_type": f.data_type,
-            "unit": f.unit,
+            "unit": getattr(f, "unit", None),
             "description": f.description,
         }
         for f in experience.donnees
@@ -139,3 +141,36 @@ def get_experiment_summary(experience_id: int, db: Session = Depends(get_db)):
         "detectors": detectors,
         "data": data_files,
     }
+
+# --- Download Experience Data ---
+@router.get("/{experience_id}/download/{data_index}", summary="Télécharger un fichier de données spécifique")
+def download_experience_data(experience_id: int, data_index: int, db: Session = Depends(get_db)):
+    # 1. On cherche l'expérience dans la base de données
+    experience = db.query(Experience).filter(
+        Experience.experience_id == experience_id
+    ).first()
+
+    if not experience:
+        raise HTTPException(status_code=404, detail="Expérience non trouvée")
+
+    # 2. On vérifie que la liste `donnees` n'est pas vide et que l'index demandé existe bien
+    if not experience.donnees or data_index < 0 or data_index >= len(experience.donnees):
+        raise HTTPException(status_code=404, detail="Le fichier demandé n'existe pas pour cette expérience")
+
+    # 3. On cible le bon fichier grâce à l'index passé dans l'URL
+    target_data_file = experience.donnees[data_index]
+    file_path = target_data_file.file_path
+
+    # 4. On s'assure que le fichier physique existe bien sur le disque du serveur
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Le fichier physique est introuvable sur le serveur")
+
+    # 5. On extrait le nom du fichier depuis son chemin
+    file_name = os.path.basename(file_path)
+
+    # 6. On déclenche le téléchargement (création et envoi d'une copie)
+    return FileResponse(
+        path=file_path, 
+        filename=file_name, 
+        media_type='application/octet-stream'
+    )

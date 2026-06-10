@@ -15,7 +15,7 @@ services:
       - radiotherapy-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-radiotherapy}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-radiotherapy} -d ${POSTGRES_DB:-radiotherapy_db}"]
       interval: 10s
       timeout: 5s
       retries: 5

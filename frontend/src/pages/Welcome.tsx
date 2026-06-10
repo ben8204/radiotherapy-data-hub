@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Microscope, Database, Zap, AlertCircle } from "lucide-react";
+import { Plus, Share2, Database, Zap, AlertCircle, Download, FolderOpen, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArticleForm } from "@/components/articles/ArticleForm";
 import { ExperiencesManager, DraftExperience } from "@/components/articles/ExperiencesManager";
@@ -29,10 +29,18 @@ export default function WelcomePage() {
     const [articleData, setArticleData] = useState<ArticleFormData | null>(null);
     const [draftExperiences, setDraftExperiences] = useState<DraftExperience[]>([]);
 
+    
+
     // Submission states
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [createdArticle, setCreatedArticle] = useState<CreatedArticle | null>(null);
+
+    // --- NOUVEAUX ÉTATS POUR LE TÉLÉCHARGEMENT ---
+    const [experiencesList, setExperiencesList] = useState<any[]>([]);
+    const [selectedExperience, setSelectedExperience] = useState<any | null>(null);
+    const [isLoadingData, setIsLoadingData] = useState(false);
+    const [selectedId, setSelectedId] = useState<number | null>(null);
 
     const handleArticleFormSubmit = (data: ArticleFormData) => {
         // Store article data in memory, don't submit to DB yet
@@ -130,6 +138,33 @@ export default function WelcomePage() {
         setWorkflowState("article-form");
     };
 
+    const handleGoToDownloads = async () => {
+        setWorkflowState("download-explorer");
+        setIsLoadingData(true);
+        try {
+            const data = await api.getExperiences();
+            setExperiencesList(data);
+        } catch (error) {
+            console.error("Erreur lors de la récupération des expériences:", error);
+        } finally {
+            setIsLoadingData(false);
+        }
+    };
+
+    const handleSelectExperience = async (id: number) => {
+        setSelectedId(id);
+        setSelectedExperience(null);
+        try {
+            const response = await fetch(`/api/experiences/${id}/summary`);
+            if (response.ok) {
+                const summary = await response.json();
+                setSelectedExperience(summary);
+            }
+        } catch (error) {
+            console.error("Erreur lors du chargement du résumé:", error);
+        }
+    };
+
     // Welcome page
     if (workflowState === "welcome") {
         return (
@@ -184,7 +219,7 @@ export default function WelcomePage() {
                         <Card className="border-2">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <Microscope className="h-5 w-5 text-primary" />
+                                    <Share2 className="h-5 w-5 text-primary" />
                                     <CardTitle className="text-base">Contribute Science</CardTitle>
                                 </div>
                             </CardHeader>
@@ -194,8 +229,8 @@ export default function WelcomePage() {
                         </Card>
                     </div>
 
-                    {/* CTA Button */}
-                    <div className="text-center">
+                    {/* CTA Buttons */}
+                    <div className="flex justify-center gap-4">
                         <Button
                             size="lg"
                             onClick={() => setWorkflowState("article-form")}
@@ -203,6 +238,16 @@ export default function WelcomePage() {
                         >
                             <Plus className="h-5 w-5 mr-2" />
                             Submit New Article
+                        </Button>
+
+                        {/* NOUVEAU BOUTON DE TÉLÉCHARGEMENT */}
+                        <Button
+                            size="lg"
+                            onClick={handleGoToDownloads}
+                            className="text-base h-12 px-8"
+                        >
+                            <Download className="h-5 w-5 mr-2" />
+                            Download Data
                         </Button>
                     </div>
 
@@ -330,6 +375,125 @@ export default function WelcomePage() {
                         </div>
                     </CardContent>
                 </Card>
+            </div>
+        );
+    }
+
+    if (workflowState === "download-explorer") {
+        return (
+            <div className="min-h-screen bg-background">
+                <div className="max-w-6xl mx-auto p-6 py-12">
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            setWorkflowState("welcome");
+                            setSelectedExperience(null);
+                            setSelectedId(null);
+                        }}
+                        className="mb-6"
+                    >
+                        ← Retour à l'accueil
+                    </Button>
+
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-bold text-foreground mb-2">
+                            Explorateur de Données Scientifiques
+                        </h1>
+                        <p className="text-muted-foreground">
+                            Sélectionnez une expérience pour télécharger ses fichiers de dosimétrie associés.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-6">
+                        {/* Colonne Gauche : Liste des expériences */}
+                        <div className="md:col-span-1 space-y-3">
+                            <h2 className="font-semibold text-lg mb-2">Expériences disponibles</h2>
+                            {isLoadingData ? (
+                                <div className="flex items-center justify-center p-8">
+                                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                </div>
+                            ) : experiencesList.length === 0 ? (
+                                <p className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed">Aucune expérience en base de données.</p>
+                            ) : (
+                                experiencesList.map((exp) => (
+                                    <button
+                                        key={exp.experience_id}
+                                        onClick={() => handleSelectExperience(exp.experience_id)}
+                                        className={`w-full text-left p-4 rounded-xl border transition-all ${
+                                            selectedId === exp.experience_id
+                                                ? "border-primary bg-primary/5 font-medium"
+                                                : "border-border hover:bg-muted/50"
+                                        }`}
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <FolderOpen className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
+                                            <div>
+                                                <p className="text-sm text-foreground line-clamp-2">{exp.description || `Expérience #${exp.experience_id}`}</p>
+                                                <p className="text-xs text-muted-foreground mt-1">ID: {exp.experience_id}</p>
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Colonne Droite : Détails et fichiers téléchargeables */}
+                        <div className="md:col-span-2">
+                            <Card className="h-full min-h-[300px]">
+                                <CardContent className="pt-6">
+                                    {!selectedId ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-center p-12 text-muted-foreground">
+                                            <Download className="h-12 w-12 mb-4 opacity-20" />
+                                            <p>Veuillez sélectionner une expérience dans la liste de gauche pour afficher ses fichiers.</p>
+                                        </div>
+                                    ) : !selectedExperience ? (
+                                        <div className="flex flex-col items-center justify-center p-12">
+                                            <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                                            <p className="text-sm text-muted-foreground">Chargement des détails de l'expérience...</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-6">
+                                            <div>
+                                                <h2 className="text-xl font-bold text-foreground mb-1">Détails de l'expérience</h2>
+                                                <p className="text-sm text-muted-foreground">{selectedExperience.description}</p>
+                                            </div>
+
+                                            {/* Liste des fichiers téléchargeables */}
+                                            <div className="space-y-3">
+                                                <h3 className="font-semibold text-sm text-foreground uppercase tracking-wider">Fichiers de données ({selectedExperience.data?.length || 0})</h3>
+                                                {!selectedExperience.data || selectedExperience.data.length === 0 ? (
+                                                    <p className="text-sm text-muted-foreground border rounded-lg p-4 bg-muted/20">Aucun fichier lié à cette expérience.</p>
+                                                ) : (
+                                                    selectedExperience.data.map((file: any, index: number) => (
+                                                        <div key={index} className="flex items-center justify-between p-4 border rounded-xl bg-card shadow-sm hover:shadow-md transition-shadow">
+                                                            <div className="space-y-1">
+                                                                <p className="font-medium text-sm text-foreground">
+                                                                    {file.data_type || `Fichier de données #${index + 1}`}
+                                                                </p>
+                                                                {file.description && <p className="text-xs text-muted-foreground">{file.description}</p>}
+                                                                {file.unit && <p className="text-xs text-primary bg-primary/5 inline-block px-2 py-0.5 rounded">Unité : {file.unit}</p>}
+                                                            </div>
+                                                            <Button asChild size="sm" variant="default" className="gap-2">
+                                                                <a
+                                                                    href={api.getDownloadUrl(selectedId, index)}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                >
+                                                                    <Download className="h-4 w-4" />
+                                                                    Télécharger
+                                                                </a>
+                                                            </Button>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }
