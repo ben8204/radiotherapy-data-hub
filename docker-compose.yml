@@ -5,6 +5,8 @@ services:
   db:
     image: postgres:15-alpine
     container_name: radiotherapy-db
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-radiotherapy}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme123}

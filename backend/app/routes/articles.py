@@ -19,17 +19,18 @@ def get_db():
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_article(article: ArticleCreate, db: Session = Depends(get_db)):
     """
-    Crée un nouvel article.
+    Crée un nouvel article, ou récupère l'article existant si le DOI est déjà enregistré.
     """
-    # Pre-verifying
+    # 1. Vérification du DOI
     if article.doi:
         existing_article = db.query(Article).filter(Article.doi == article.doi).first()
         if existing_article:
-            raise HTTPException(
-                status_code=409,
-                detail=f"Article already exists (DOI: {article.doi})"
-            )
+            # SÉCURITÉ : Au lieu de bloquer l'utilisateur avec une erreur 409, 
+            # on renvoie discrètement l'article existant. 
+            # Le frontend recevra son 'article_id' et pourra continuer sa route !
+            return existing_article
 
+    # 2. Si le DOI n'existe pas, on procède à la création normale
     db_article = Article(**article.dict())
     db.add(db_article)
 

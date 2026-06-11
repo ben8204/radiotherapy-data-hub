@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Share2, Database, Zap, AlertCircle, Download, FolderOpen, Loader2 } from "lucide-react";
+import { Plus, Share2, Database, Zap, AlertCircle, Download, FolderOpen, Loader2, FileText } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArticleForm } from "@/components/articles/ArticleForm";
 import { ExperiencesManager, DraftExperience } from "@/components/articles/ExperiencesManager";
@@ -112,6 +112,7 @@ export default function WelcomePage() {
             }
 
             // Success: move to confirmation
+            setIsSubmitting(false);
             setWorkflowState("confirmation");
         } catch (error) {
             // Error: keep data in memory, show error message
@@ -134,6 +135,7 @@ export default function WelcomePage() {
         setArticleData(null);
         setDraftExperiences([]);
         setSubmitError(null);
+        setIsSubmitting(false);
         setCreatedArticle(null);
         setWorkflowState("article-form");
     };
@@ -380,6 +382,24 @@ export default function WelcomePage() {
     }
 
     if (workflowState === "download-explorer") {
+        // --- LOGIQUE DE REGROUPEMENT ---
+        // On regroupe experiencesList par Article
+        const articlesGroupes = experiencesList.reduce((acc, exp) => {
+            const articleId = exp.article_id || "unknown";
+            if (!acc[articleId]) {
+                acc[articleId] = {
+                    article_id: articleId,
+                    titre: exp.article_title || `Article ID: ${articleId}`, // Utilise le vrai titre s'il vient de l'API
+                    doi: exp.doi,
+                    experiences: []
+                };
+            }
+            acc[articleId].experiences.push(exp);
+            return acc;
+        }, {} as Record<string, any>);
+
+        const listeArticles = Object.values(articlesGroupes);
+
         return (
             <div className="min-h-screen bg-background">
                 <div className="max-w-6xl mx-auto p-6 py-12">
@@ -400,46 +420,65 @@ export default function WelcomePage() {
                             Scientific Data Explorer
                         </h1>
                         <p className="text-muted-foreground">
-                            Select an experiment to download its associated dosimetry files.
+                            Browse articles and select an experiment to download its associated dosimetry files.
                         </p>
                     </div>
 
                     <div className="grid md:grid-cols-3 gap-6">
-                        {/* Colonne Gauche : Liste des expériences */}
-                        <div className="md:col-span-1 space-y-3">
-                            <h2 className="font-semibold text-lg mb-2">Available experiences</h2>
+                        {/* --- Colonne Gauche : Liste hiérarchisée --- */}
+                        <div className="md:col-span-1 space-y-4">
+                            <h2 className="font-semibold text-lg mb-2">Publications & Data</h2>
+                            
                             {isLoadingData ? (
                                 <div className="flex items-center justify-center p-8">
                                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                                 </div>
-                            ) : experiencesList.length === 0 ? (
-                                <p className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed">No Experience in Database</p>
+                            ) : listeArticles.length === 0 ? (
+                                <p className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed text-center">
+                                    No Data in Database
+                                </p>
                             ) : (
-                                experiencesList.map((exp) => (
-                                    <button
-                                        key={exp.experience_id}
-                                        onClick={() => handleSelectExperience(exp.experience_id)}
-                                        className={`w-full text-left p-4 rounded-xl border transition-all ${
-                                            selectedId === exp.experience_id
-                                                ? "border-primary bg-primary/5 font-medium"
-                                                : "border-border hover:bg-muted/50"
-                                        }`}
-                                    >
-                                        <div className="flex items-start gap-3">
-                                            <FolderOpen className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
-                                            <div>
-                                                <p className="text-sm text-foreground line-clamp-2">{exp.description || `Expérience #${exp.experience_id}`}</p>
-                                                <p className="text-xs text-muted-foreground mt-1">ID: {exp.experience_id}</p>
+                                <div className="space-y-4">
+                                    {listeArticles.map((article) => (
+                                        <div key={article.article_id} className="border rounded-xl bg-card overflow-hidden">
+                                            {/* En-tête de l'Article */}
+                                            <div className="bg-muted/30 p-3 border-b flex items-start gap-3">
+                                                <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                                                <div>
+                                                    <p className="font-semibold text-sm line-clamp-2">{article.titre}</p>
+                                                    {article.doi && <p className="text-xs text-muted-foreground mt-0.5">DOI: {article.doi}</p>}
+                                                </div>
+                                            </div>
+
+                                            {/* Liste des Expériences de cet Article */}
+                                            <div className="p-2 space-y-1 bg-background">
+                                                {article.experiences.map((exp: any) => (
+                                                    <button
+                                                        key={exp.experience_id}
+                                                        onClick={() => handleSelectExperience(exp.experience_id)}
+                                                        className={`w-full text-left p-3 rounded-lg transition-all flex items-start gap-3 ${
+                                                            selectedId === exp.experience_id
+                                                                ? "bg-primary/10 text-primary font-medium"
+                                                                : "hover:bg-muted/50 text-foreground"
+                                                        }`}
+                                                    >
+                                                        <FolderOpen className={`h-4 w-4 mt-0.5 shrink-0 ${selectedId === exp.experience_id ? "text-primary" : "text-muted-foreground"}`} />
+                                                        <div>
+                                                            <p className="text-sm line-clamp-1">{exp.description || `Expérience #${exp.experience_id}`}</p>
+                                                            <p className="text-xs opacity-70 mt-0.5">ID: {exp.experience_id}</p>
+                                                        </div>
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
-                                    </button>
-                                ))
+                                    ))}
+                                </div>
                             )}
                         </div>
 
-                        {/* Colonne Droite : Détails et fichiers téléchargeables */}
+                        {/* --- Colonne Droite : INTACTE --- */}
                         <div className="md:col-span-2">
-                            <Card className="h-full min-h-[300px]">
+                            <Card className="h-full min-h-[300px] sticky top-6">
                                 <CardContent className="pt-6">
                                     {!selectedId ? (
                                         <div className="h-full flex flex-col items-center justify-center text-center p-12 text-muted-foreground">
@@ -462,7 +501,7 @@ export default function WelcomePage() {
                                             <div className="space-y-3">
                                                 <h3 className="font-semibold text-sm text-foreground uppercase tracking-wider">Data Files ({selectedExperience.data?.length || 0})</h3>
                                                 {!selectedExperience.data || selectedExperience.data.length === 0 ? (
-                                                    <p className="text-sm text-muted-foreground border rounded-lg p-4 bg-muted/20">No data link to this experience</p>
+                                                    <p className="text-sm text-muted-foreground border rounded-lg p-4 bg-muted/20">No data linked to this experience</p>
                                                 ) : (
                                                     selectedExperience.data.map((file: any, index: number) => (
                                                         <div key={index} className="flex items-center justify-between p-4 border rounded-xl bg-card shadow-sm hover:shadow-md transition-shadow">
