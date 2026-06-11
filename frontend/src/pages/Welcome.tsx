@@ -445,8 +445,14 @@ export default function WelcomePage() {
                                             <div className="bg-muted/30 p-3 border-b flex items-start gap-3">
                                                 <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                                                 <div>
-                                                    <p className="font-semibold text-sm line-clamp-2">{article.titre}</p>
-                                                    {article.doi && <p className="text-xs text-muted-foreground mt-0.5">DOI: {article.doi}</p>}
+                                                    <p className="font-semibold text-sm line-clamp-2 text-foreground">
+                                                        Article : "{article.titre}"
+                                                    </p>
+                                                    {article.doi && (
+                                                        <p className="text-xs text-muted-foreground mt-1 font-medium">
+                                                            DOI : "{article.doi}"
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
 

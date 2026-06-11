@@ -62,15 +62,24 @@ def create_experience(experience: ExperienceCreate, db: Session = Depends(get_db
 # --- List all Experiences ---
 @router.get("/")
 def list_experiences(db: Session = Depends(get_db)):
+    # On récupère toutes les expériences
     experiences = db.query(Experience).all()
-    return [
-        {
+    
+    resultat = []
+    for e in experiences:
+        # Pour chaque expérience, on va chercher l'article correspondant
+        article = db.query(Article).filter(Article.article_id == e.article_id).first() if e.article_id else None
+        
+        resultat.append({
             "experience_id": e.experience_id,
             "description": e.description,
-            "article_id": e.article_id
-        }
-        for e in experiences
-    ]
+            "article_id": e.article_id,
+            # On ajoute le titre et le DOI pour le frontend !
+            "article_title": article.titre if article else f"Article ID: {e.article_id}",
+            "doi": article.doi if article else None
+        })
+        
+    return resultat
 
 
 # --- Get Summary for Wizard ---
@@ -151,11 +160,11 @@ def download_experience_data(experience_id: int, data_index: int, db: Session = 
     ).first()
 
     if not experience:
-        raise HTTPException(status_code=404, detail="Expérience non trouvée")
+        raise HTTPException(status_code=404, detail="Experience not found")
 
     # 2. On vérifie que la liste `donnees` n'est pas vide et que l'index demandé existe bien
     if not experience.donnees or data_index < 0 or data_index >= len(experience.donnees):
-        raise HTTPException(status_code=404, detail="Le fichier demandé n'existe pas pour cette expérience")
+        raise HTTPException(status_code=404, detail="The requested file does not exist for this experience")
 
     # 3. On cible le bon fichier grâce à l'index passé dans l'URL
     target_data_file = experience.donnees[data_index]
@@ -163,7 +172,7 @@ def download_experience_data(experience_id: int, data_index: int, db: Session = 
 
     # 4. On s'assure que le fichier physique existe bien sur le disque du serveur
     if not file_path or not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Le fichier physique est introuvable sur le serveur")
+        raise HTTPException(status_code=404, detail="The physical file could not be found on the server")
 
     # 5. On extrait le nom du fichier depuis son chemin
     file_name = os.path.basename(file_path)
