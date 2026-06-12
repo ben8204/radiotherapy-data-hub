@@ -18,31 +18,30 @@ def get_db():
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_article(article: ArticleCreate, db: Session = Depends(get_db)):
-    """
-    Crée un nouvel article, ou récupère l'article existant si le DOI est déjà enregistré.
-    """
-    # 1. Vérification du DOI
-    if article.doi:
-        existing_article = db.query(Article).filter(Article.doi == article.doi).first()
-        if existing_article:
-            # SÉCURITÉ : Au lieu de bloquer l'utilisateur avec une erreur 409, 
-            # on renvoie discrètement l'article existant. 
-            # Le frontend recevra son 'article_id' et pourra continuer sa route !
-            return existing_article
+    # 1. Vérification des doublons
+    existing_article = None
+    
+    if article.doi and article.doi.strip():
+        existing_article = db.query(Article).filter(Article.doi == article.doi.strip()).first()
+        
+    if not existing_article and article.titre:
+        existing_article = db.query(Article).filter(func.lower(Article.titre) == article.titre.strip().lower()).first()
 
-    # 2. Si le DOI n'existe pas, on procède à la création normale
-    db_article = Article(**article.dict())
-    db.add(db_article)
-
-    try:
-        db.commit()
-    except DatabaseError:
-        db.rollback()
+    # Si on trouve un doublon, on lève l'erreur spéciale
+    if existing_article:
         raise HTTPException(
             status_code=409,
-            detail="Database Error"
+            detail={
+                "code": "ARTICLE_ALREADY_EXISTS",
+                "article_id": existing_article.article_id,
+                "message": "This article already exists in the database."
+            }
         )
 
+    # 2. Sinon, on crée l'article normalement
+    db_article = Article(titre=article.titre, auteurs=article.auteurs, doi=article.doi)
+    db.add(db_article)
+    db.commit()
     db.refresh(db_article)
     return db_article
 

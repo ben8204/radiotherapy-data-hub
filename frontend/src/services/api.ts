@@ -126,8 +126,12 @@ async function handleResponse<T>(response: Response): Promise<T> {
     try {
       const errorData = await response.json();
       errorDetails = errorData;
+      
+      // MODIFICATION ICI : On gère le cas où "detail" est un objet
       if (errorData.detail) {
-        errorMessage = errorData.detail;
+        errorMessage = typeof errorData.detail === 'string' 
+          ? errorData.detail 
+          : (errorData.detail.message || JSON.stringify(errorData.detail));
       } else if (errorData.message) {
         errorMessage = errorData.message;
       }

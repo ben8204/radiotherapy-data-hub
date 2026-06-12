@@ -5,7 +5,7 @@ import { Plus, Share2, Database, Zap, AlertCircle, Download, FolderOpen, Loader2
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArticleForm } from "@/components/articles/ArticleForm";
 import { ExperiencesManager, DraftExperience } from "@/components/articles/ExperiencesManager";
-import { api } from "@/services/api";
+import { api, ApiError } from "@/services/api";
 
 interface ArticleFormData {
     titre: string;
@@ -35,6 +35,10 @@ export default function WelcomePage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [createdArticle, setCreatedArticle] = useState<CreatedArticle | null>(null);
+    const [duplicateConflict, setDuplicateConflict] = useState<{show: boolean, articleId: number | null}>({
+    show: false,
+    articleId: null
+    })
 
     // --- NOUVEAUX ÉTATS POUR LE TÉLÉCHARGEMENT ---
     const [experiencesList, setExperiencesList] = useState<any[]>([]);
@@ -67,7 +71,6 @@ export default function WelcomePage() {
     };
 
     const handleExperimentsComplete = async () => {
-        // Validate we have at least one experience
         if (!articleData) {
             setSubmitError("Article data is missing");
             return;
@@ -89,49 +92,90 @@ export default function WelcomePage() {
                 doi: articleData.doi,
             });
 
-            const articleId = createdArticleResponse.article_id;
             setCreatedArticle(createdArticleResponse);
 
-            // Step 2: Create all experiences for this article
-            for (const experience of draftExperiences) {
-                // On sécurise le fait que data est bien un tableau
-                const dataArray = Array.isArray(experience.data) ? experience.data : [experience.data];
-                
-                // On ne garde que les blocs de données qui ont réellement un fichier
-                const validDataBlocks = dataArray.filter(d => d && d.file !== null);
+            // Step 2: On délègue la suite à notre nouvelle fonction utilitaire
+            await processExperiencesForArticle(createdArticleResponse.article_id);
 
-                if (validDataBlocks.length === 0) {
-                    throw new Error(`Experience "${experience.description}" is missing a data file`);
-                }
+        } catch (error: any) {
+            setIsSubmitting(false);
 
-                // NOUVEAU : On sépare les fichiers des métadonnées (exactement comme attendu par l'API)
-                const files = validDataBlocks.map(d => d.file!);
-                const data_metadata = validDataBlocks.map(d => ({
-                    dataType: d.dataType || "raw",
-                    description: d.description || "",
-                    columnMapping: d.columnMapping || []
-                }));
+            // On cherche l'objet detail, peu importe la profondeur à laquelle FastAPI l'a caché
+            const detailObj = error.details?.detail || error.details;
 
-                // NOUVEAU : Appel à l'API avec le bon format multi-fichiers
-                await api.submitExperienceToArticle(articleId, {
-                    experience_description: experience.description,
-                    machines: experience.machines,
-                    detectors: experience.detectors,
-                    phantoms: experience.phantoms,
-                    files: files,
-                    data_metadata: data_metadata,
+            // On vérifie simplement le code ou le statut HTTP (sans utiliser instanceof)
+            if (error.status === 409 || detailObj?.code === "ARTICLE_ALREADY_EXISTS") {
+                setDuplicateConflict({
+                    show: true,
+                    articleId: detailObj?.article_id
+                });
+                return; // On arrête là et on attend la réponse de l'utilisateur
+            }
+
+            // Erreur classique
+            const errorMessage = error.message || error.toString() || "An error occurred during submission";
+            setSubmitError(errorMessage);
+        }
+    };
+
+    // 2. La fonction utilitaire qui contient ta boucle (extraite pour être réutilisée)
+    const processExperiencesForArticle = async (articleId: number) => {
+        for (const experience of draftExperiences) {
+            const dataArray = Array.isArray(experience.data) ? experience.data : [experience.data];
+            const validDataBlocks = dataArray.filter(d => d && d.file !== null);
+
+            if (validDataBlocks.length === 0) {
+                throw new Error(`Experience "${experience.description}" is missing a data file`);
+            }
+
+            const files = validDataBlocks.map(d => d.file!);
+            const data_metadata = validDataBlocks.map(d => ({
+                dataType: d.dataType || "raw",
+                description: d.description || "",
+                columnMapping: d.columnMapping || []
+            }));
+
+            await api.submitExperienceToArticle(articleId, {
+                experience_description: experience.description,
+                machines: experience.machines,
+                detectors: experience.detectors,
+                phantoms: experience.phantoms,
+                files: files,
+                data_metadata: data_metadata,
+            });
+        }
+
+        // Success: move to confirmation
+        setIsSubmitting(false);
+        setWorkflowState("confirmation");
+    };
+
+    // 3. La fonction déclenchée si l'utilisateur clique sur "Oui, fusionner" dans la modale
+    const handleMergeConfirm = async () => {
+        if (!duplicateConflict.articleId) return;
+        
+        // On ferme la popup et on relance le chargement
+        setDuplicateConflict({ show: false, articleId: null });
+        setIsSubmitting(true);
+        setSubmitError(null);
+        
+        try {
+            // --- CORRECTION : On "simule" l'article pour que la page de confirmation s'affiche ---
+            if (articleData) {
+                setCreatedArticle({
+                    article_id: duplicateConflict.articleId,
+                    titre: articleData.titre,
+                    auteurs: articleData.auteurs,
+                    doi: articleData.doi
                 });
             }
 
-            // Success: move to confirmation
+            // On saute l'étape de création d'article et on lance directement les expériences 
+            // sur l'ID de l'article qui existait déjà !
+            await processExperiencesForArticle(duplicateConflict.articleId);
+        } catch (error: any) {
             setIsSubmitting(false);
-            setWorkflowState("confirmation");
-        } catch (error) {
-            // Error: keep data in memory, show error message
-            const errorMessage =
-                error instanceof Error ? error.message : "An error occurred during submission";
-            setSubmitError(errorMessage);
-            setIsSubmitting(false);
+            setSubmitError(error instanceof Error ? error.message : "An error occurred during merge");
         }
     };
 
@@ -309,6 +353,7 @@ export default function WelcomePage() {
     }
 
     // Experiments management state - Draft mode: experiences stored in memory
+    // Experiments management state - Draft mode: experiences stored in memory
     if (workflowState === "experiments" && articleData) {
         return (
             <div className="min-h-screen bg-background">
@@ -350,6 +395,35 @@ export default function WelcomePage() {
                         isSubmitting={isSubmitting}
                     />
                 </div>
+
+                {/* ⚠️ LA MODALE EST MAINTENANT ICI, DANS LE BON ÉCRAN ! ⚠️ */}
+                {duplicateConflict.show && (
+                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                        <div className="bg-background border rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+                            <h3 className="text-lg font-bold text-foreground mb-2">
+                                Article already exists!
+                            </h3>
+                            <p className="text-sm text-muted-foreground mb-6">
+                                An article with this DOI or Title is already registered in the Data Hub. 
+                                Would you like to attach your new experiments to this existing article?
+                            </p>
+                            <div className="flex gap-3 justify-end">
+                                <Button 
+                                    variant="outline" 
+                                    onClick={() => setDuplicateConflict({ show: false, articleId: null })}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button 
+                                    className="bg-primary hover:bg-primary/90"
+                                    onClick={handleMergeConfirm}
+                                >
+                                    Yes, attach experiments
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
