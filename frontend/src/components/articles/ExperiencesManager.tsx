@@ -10,13 +10,13 @@ export interface DraftExperience {
     machines: any[];
     detectors: any[];
     phantoms: any[];
-    data: {
+    data: Array<{
         dataType: string;
         fileFormat: string;
         description: string;
         file: File | null;
         columnMapping: any[];
-    };
+    }>;
 }
 
 interface ExistingExperience {
@@ -223,17 +223,14 @@ export function ExperiencesManager({
                                                 phantom{exp.phantoms.length !== 1 ? "s" : ""}
                                             </span>
                                             <span className="text-muted-foreground">
-                                                {exp.data.file ? (
-                                                    <>
-                                                        <span className="font-medium text-foreground">1</span>{" "}
-                                                        file
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <span className="font-medium text-foreground">0</span>{" "}
-                                                        file
-                                                    </>
-                                                )}
+                                                <span className="font-medium text-foreground">
+                                                    {Array.isArray(exp.data) 
+                                                    ? exp.data.filter(d => d.file).length 
+                                                    : (exp.data && exp.data.file ? 1 : 0)}
+                                                </span>{" "}
+                                                file{Array.isArray(exp.data) 
+                                                    ? (exp.data.filter(d => d.file).length !== 1 ? "s" : "") 
+                                                    : ""}
                                             </span>
                                         </div>
                                     </div>

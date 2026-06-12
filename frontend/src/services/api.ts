@@ -319,7 +319,7 @@ export const api = {
     return handleResponse<DonneeResponse>(response);
   },
 
-  // Complete submission - atomic transaction
+// Complete submission - atomic transaction
   async submitCompleteExperiment(formData: {
     title: string;
     authors: string;
@@ -328,10 +328,9 @@ export const api = {
     machines: any[];
     detectors: any[];
     phantoms: any[];
-    file: File;
-    data_type: string;
-    data_description?: string;
-    columnMapping?: any[];
+    // --- NOUVEAU : On attend une liste de fichiers et des métadonnées ---
+    files: File[];
+    data_metadata: any[];
   }): Promise<any> {
     const data = new FormData();
     data.append("title", formData.title);
@@ -341,12 +340,14 @@ export const api = {
     data.append("machines", JSON.stringify(formData.machines));
     data.append("detectors", JSON.stringify(formData.detectors));
     data.append("phantoms", JSON.stringify(formData.phantoms));
-    data.append("file", formData.file);
-    data.append("data_type", formData.data_type);
-    if (formData.data_description) data.append("data_description", formData.data_description);
-    if (formData.columnMapping && formData.columnMapping.length > 0) {
-      data.append("columnMapping", JSON.stringify(formData.columnMapping));
-    }
+    
+    // --- NOUVEAU : On injecte la liste des fichiers et le JSON des métadonnées ---
+    data.append("data_metadata", JSON.stringify(formData.data_metadata));
+    formData.files.forEach((file) => {
+      // Dans FormData, si on append plusieurs fois avec la même clé "files",
+      // ça crée automatiquement une liste/tableau que FastAPI comprendra !
+      data.append("files", file); 
+    });
 
     const response = await fetch(`${API_BASE_URL}/complete/submit`, {
       method: "POST",
@@ -361,22 +362,21 @@ export const api = {
     machines: any[];
     detectors: any[];
     phantoms: any[];
-    file: File;
-    data_type: string;
-    data_description?: string;
-    columnMapping?: any[];
+    // --- NOUVEAU : On attend une liste de fichiers et des métadonnées ---
+    files: File[];
+    data_metadata: any[];
   }): Promise<any> {
     const data = new FormData();
     data.append("experience_description", formData.experience_description);
     data.append("machines", JSON.stringify(formData.machines));
     data.append("detectors", JSON.stringify(formData.detectors));
     data.append("phantoms", JSON.stringify(formData.phantoms));
-    data.append("file", formData.file);
-    data.append("data_type", formData.data_type);
-    if (formData.data_description) data.append("data_description", formData.data_description);
-    if (formData.columnMapping && formData.columnMapping.length > 0) {
-      data.append("columnMapping", JSON.stringify(formData.columnMapping));
-    }
+    
+    // --- NOUVEAU : On injecte la liste des fichiers et le JSON des métadonnées ---
+    data.append("data_metadata", JSON.stringify(formData.data_metadata));
+    formData.files.forEach((file) => {
+      data.append("files", file); 
+    });
 
     const response = await fetch(`${API_BASE_URL}/complete/submit-experience/${articleId}`, {
       method: "POST",

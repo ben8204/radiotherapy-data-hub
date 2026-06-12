@@ -41,13 +41,13 @@ export interface FormData {
     position?: string;
     orientation?: string;
   }>;
-  data: {
+  data: Array<{
     dataType: string;
     fileFormat: string;
     description: string;
     file: File | null;
     columnMapping: ColumnMapping[];
-  };
+  }>;
 }
 
 interface FormWizardProps {
@@ -89,7 +89,7 @@ export function FormWizard({ articleId, experienceId, draftMode = false, initial
     machines: [{ manufacturer: "", model: "", machineType: "" }],
     phantoms: [{ phantom_type: "", manufacturer: "", model: "", dimensions: "", material: "", position: "", orientation: "" }],
     detectors: [{ detectorType: "", model: "", manufacturer: "" }],
-    data: { dataType: "", fileFormat: "", description: "", file: null, columnMapping: [] },
+    data: [{ dataType: "", fileFormat: "", description: "", file: null, columnMapping: [] }],
   });
 
   // Determine which steps to show based on articleId or draftMode
@@ -144,7 +144,7 @@ export function FormWizard({ articleId, experienceId, draftMode = false, initial
         phantoms: [{ phantom_type: "", manufacturer: "", model: "", dimensions: "", material: "", position: "", orientation: "" }],
         machines: [{ manufacturer: "", model: "", machineType: "" }],
         detectors: [{ detectorType: "", model: "", manufacturer: "" }],
-        data: { dataType: "", fileFormat: "", description: "", file: null, columnMapping: [] },
+        data: [{ dataType: "", fileFormat: "", description: "", file: null, columnMapping: [] }],
       });
       setCurrentStep(1);
       onSuccess?.(success);
@@ -200,11 +200,8 @@ export function FormWizard({ articleId, experienceId, draftMode = false, initial
         case 6:
           return (
             <ColumnMappingStep
-              data={formData.data.columnMapping}
-              fileName={formData.data.file?.name || null}
-              onChange={(columnMapping) =>
-                updateFormData("data", { ...formData.data, columnMapping })
-              }
+              data={formData.data}
+              onChange={(data) => updateFormData("data", data)}
             />
           );
         case 7:
@@ -260,11 +257,8 @@ export function FormWizard({ articleId, experienceId, draftMode = false, initial
         case 7:
           return (
             <ColumnMappingStep
-              data={formData.data.columnMapping}
-              fileName={formData.data.file?.name || null}
-              onChange={(columnMapping) =>
-                updateFormData("data", { ...formData.data, columnMapping })
-              }
+              data={formData.data}
+              onChange={(data) => updateFormData("data", data)}
             />
           );
         case 8:

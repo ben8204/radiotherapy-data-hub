@@ -25,12 +25,10 @@ const retryRequest = async <T,>(
     } catch (error) {
       lastError = error;
 
-      // Don't retry on 4xx errors (validation, not found, etc)
       if (error instanceof ApiError && error.statusCode < 500) {
         throw error;
       }
 
-      // Calculate exponential backoff
       const delay = baseDelay * Math.pow(2, attempt);
       console.log(`⏳ Retry attempt ${attempt + 1}/${maxRetries} in ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -56,6 +54,19 @@ export const useFormSubmit = () => {
 
     try {
       console.log("🎯 Starting atomic submission with complete endpoint...");
+
+      // NOUVEAU : On filtre pour ne garder que les blocs où un fichier a bien été uploadé
+      const validDataBlocks = Array.isArray(formData.data) 
+        ? formData.data.filter(d => d.file !== null) 
+        : [];
+
+      // On sépare les fichiers physiques des métadonnées
+      const files = validDataBlocks.map(d => d.file!);
+      const data_metadata = validDataBlocks.map(d => ({
+        dataType: d.dataType || "raw",
+        description: d.description || "",
+        columnMapping: d.columnMapping || []
+      }));
 
       // Prepare complete submission data
       const submissionData = {
@@ -84,7 +95,7 @@ export const useFormSubmit = () => {
             orientation: d.orientation || undefined,
           })),
         phantoms: formData.phantoms
-          .filter((p) => p.name)
+          .filter((p) => p.name || p.phantom_type)
           .map((p) => ({
             name: p.name,
             phantom_type: p.phantom_type,
@@ -93,10 +104,9 @@ export const useFormSubmit = () => {
             position: p.position || undefined,
             orientation: p.orientation || undefined,
           })),
-        file: formData.data.file!,
-        data_type: formData.data.dataType || "raw",
-        data_description: formData.data.description || undefined,
-        columnMapping: formData.data.columnMapping || [],
+        // NOUVEAU : On passe nos tableaux au lieu des variables uniques
+        files: files,
+        data_metadata: data_metadata,
       };
 
       console.log("📤 Submitting complete experiment to backend (atomic transaction)...");
@@ -105,8 +115,7 @@ export const useFormSubmit = () => {
       );
 
       console.log("✅ Complete submission successful!");
-      console.log("Created:", result);
-
+      
       setState({
         isSubmitting: false,
         error: null,
@@ -124,14 +133,11 @@ export const useFormSubmit = () => {
     } catch (error) {
       console.error("❌ Submission error:", error);
 
-      // Determine which step failed based on error message
-      let failedStep = 1; // Default to article step
+      let failedStep = 1;
       let message = "Failed to submit. Please check your connection and try again.";
 
       if (error instanceof ApiError) {
         message = error.message;
-
-        // Try to infer which step failed from error message
         if (message.includes("article")) failedStep = 1;
         else if (message.includes("experience")) failedStep = 2;
         else if (message.includes("machine")) failedStep = 3;
@@ -142,8 +148,6 @@ export const useFormSubmit = () => {
         message = error.message;
       }
 
-      console.log(`❌ Failed at step ${failedStep}`);
-
       setState({
         isSubmitting: false,
         error: message,
@@ -152,12 +156,7 @@ export const useFormSubmit = () => {
         failedStep,
       });
 
-      toast({
-        title: "Submission failed",
-        description: message,
-        variant: "destructive",
-      });
-
+      toast({ title: "Submission failed", description: message, variant: "destructive" });
       return false;
     }
   };
@@ -168,7 +167,18 @@ export const useFormSubmit = () => {
     try {
       console.log("🎯 Starting experience submission for article", articleId);
 
-      // Prepare experience submission data (without article info)
+      // NOUVEAU : La même logique d'extraction pour l'ajout d'une expérience existante
+      const validDataBlocks = Array.isArray(formData.data) 
+        ? formData.data.filter(d => d.file !== null) 
+        : [];
+
+      const files = validDataBlocks.map(d => d.file!);
+      const data_metadata = validDataBlocks.map(d => ({
+        dataType: d.dataType || "raw",
+        description: d.description || "",
+        columnMapping: d.columnMapping || []
+      }));
+
       const submissionData = {
         experience_description: formData.experience.description,
         machines: formData.machines
@@ -192,7 +202,7 @@ export const useFormSubmit = () => {
             orientation: d.orientation || undefined,
           })),
         phantoms: formData.phantoms
-          .filter((p) => p.name)
+          .filter((p) => p.name || p.phantom_type)
           .map((p) => ({
             name: p.name,
             phantom_type: p.phantom_type,
@@ -201,10 +211,9 @@ export const useFormSubmit = () => {
             position: p.position || undefined,
             orientation: p.orientation || undefined,
           })),
-        file: formData.data.file!,
-        data_type: formData.data.dataType || "raw",
-        data_description: formData.data.description || undefined,
-        columnMapping: formData.data.columnMapping || [],
+        // NOUVEAU
+        files: files,
+        data_metadata: data_metadata,
       };
 
       console.log("📤 Submitting experience to backend...");
@@ -213,7 +222,6 @@ export const useFormSubmit = () => {
       );
 
       console.log("✅ Experience submission successful!");
-      console.log("Created:", result);
 
       setState({
         isSubmitting: false,
@@ -232,14 +240,11 @@ export const useFormSubmit = () => {
     } catch (error) {
       console.error("❌ Experience submission error:", error);
 
-      // Determine which step failed based on error message
-      let failedStep = 1; // Default to experience step
+      let failedStep = 1;
       let message = "Failed to submit. Please check your connection and try again.";
 
       if (error instanceof ApiError) {
         message = error.message;
-
-        // Try to infer which step failed from error message (without article step offset)
         if (message.includes("experience")) failedStep = 1;
         else if (message.includes("machine")) failedStep = 2;
         else if (message.includes("detector")) failedStep = 3;
@@ -249,8 +254,6 @@ export const useFormSubmit = () => {
         message = error.message;
       }
 
-      console.log(`❌ Failed at step ${failedStep}`);
-
       setState({
         isSubmitting: false,
         error: message,
@@ -259,12 +262,7 @@ export const useFormSubmit = () => {
         failedStep,
       });
 
-      toast({
-        title: "Experience submission failed",
-        description: message,
-        variant: "destructive",
-      });
-
+      toast({ title: "Experience submission failed", description: message, variant: "destructive" });
       return false;
     }
   };

@@ -94,20 +94,32 @@ export default function WelcomePage() {
 
             // Step 2: Create all experiences for this article
             for (const experience of draftExperiences) {
-                // Validate that a file is present
-                if (!experience.data.file) {
-                    throw new Error(`Experience "${experience.description || 'Untitled'}" is missing a data file`);
+                // On sécurise le fait que data est bien un tableau
+                const dataArray = Array.isArray(experience.data) ? experience.data : [experience.data];
+                
+                // On ne garde que les blocs de données qui ont réellement un fichier
+                const validDataBlocks = dataArray.filter(d => d && d.file !== null);
+
+                if (validDataBlocks.length === 0) {
+                    throw new Error(`Experience "${experience.description}" is missing a data file`);
                 }
 
+                // NOUVEAU : On sépare les fichiers des métadonnées (exactement comme attendu par l'API)
+                const files = validDataBlocks.map(d => d.file!);
+                const data_metadata = validDataBlocks.map(d => ({
+                    dataType: d.dataType || "raw",
+                    description: d.description || "",
+                    columnMapping: d.columnMapping || []
+                }));
+
+                // NOUVEAU : Appel à l'API avec le bon format multi-fichiers
                 await api.submitExperienceToArticle(articleId, {
                     experience_description: experience.description,
                     machines: experience.machines,
                     detectors: experience.detectors,
                     phantoms: experience.phantoms,
-                    file: experience.data.file,
-                    data_type: experience.data.dataType,
-                    data_description: experience.data.description,
-                    columnMapping: experience.data.columnMapping,
+                    files: files,
+                    data_metadata: data_metadata,
                 });
             }
 
